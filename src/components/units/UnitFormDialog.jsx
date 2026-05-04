@@ -33,14 +33,21 @@ export default function UnitFormDialog({ open, onOpenChange, unit, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    if (unit) {
-      await base44.entities.Unit.update(unit.id, form);
-    } else {
-      await base44.entities.Unit.create(form);
+    try {
+      if (unit) {
+        await base44.entities.Unit.update(unit.id, form);
+      } else {
+        await base44.entities.Unit.create(form);
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Erro ao salvar unidade:', error);
+      const message = error?.message || 'Falha ao salvar unidade no Supabase.';
+      window.alert(message);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));

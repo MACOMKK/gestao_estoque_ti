@@ -8,39 +8,39 @@
   :root {
     --font-inter: 'Inter', sans-serif;
 
-    --background: 0 0% 97%;
-    --foreground: 0 0% 8%;
+    --background: 0 0% 96%;
+    --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 8%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 8%;
-    --primary: 0 90% 45%;
+    --primary: 355 83% 41%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 94%;
-    --secondary-foreground: 0 0% 15%;
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 94%;
-    --accent-foreground: 0 0% 10%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 18%;
+    --muted: 0 0% 93%;
+    --muted-foreground: 0 0% 38%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 16%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 90% 45%;
-    --chart-1: 0 90% 45%;
-    --chart-2: 210 60% 50%;
-    --chart-3: 150 50% 40%;
-    --chart-4: 40 80% 55%;
-    --chart-5: 270 50% 50%;
+    --border: 0 0% 86%;
+    --input: 0 0% 86%;
+    --ring: 355 83% 41%;
+    --chart-1: 355 83% 41%;
+    --chart-2: 355 70% 55%;
+    --chart-3: 0 0% 28%;
+    --chart-4: 0 0% 45%;
+    --chart-5: 0 0% 62%;
     --radius: 0.625rem;
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 0 90% 45%;
+    --sidebar-foreground: 0 0% 18%;
+    --sidebar-primary: 355 83% 41%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 5% 96%;
+    --sidebar-accent: 0 0% 93%;
     --sidebar-accent-foreground: 0 0% 15%;
-    --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 0 90% 45%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 355 83% 41%;
   }
 
   .dark {

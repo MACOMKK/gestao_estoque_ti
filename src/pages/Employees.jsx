@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Pencil, Trash2, Monitor, Building2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Monitor, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import EmployeeFormDialog from '@/components/employees/EmployeeFormDialog';
-import { Link } from 'react-router-dom';
+import ImportDataDialog from '@/components/ImportDataDialog';
 
 export default function Employees() {
   const queryClient = useQueryClient();
@@ -19,6 +19,7 @@ export default function Employees() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [deleteEmployee, setDeleteEmployee] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ['employees'],
@@ -71,9 +72,14 @@ export default function Employees() {
           <h1 className="text-3xl font-extrabold tracking-tight">Colaboradores</h1>
           <p className="text-muted-foreground mt-1">{employees.length} colaboradores cadastrados</p>
         </div>
-        <Button onClick={() => { setEditingEmployee(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="w-4 h-4" /> Novo Colaborador
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="w-4 h-4" /> Importar
+          </Button>
+          <Button onClick={() => { setEditingEmployee(null); setFormOpen(true); }} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo Colaborador
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -161,6 +167,13 @@ export default function Employees() {
       </Card>
 
       <EmployeeFormDialog open={formOpen} onOpenChange={setFormOpen} employee={editingEmployee} onSaved={refresh} />
+      <ImportDataDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        entityName="Employee"
+        title="Importar Colaboradores"
+        onImported={refresh}
+      />
 
       <AlertDialog open={!!deleteEmployee} onOpenChange={(open) => !open && setDeleteEmployee(null)}>
         <AlertDialogContent>

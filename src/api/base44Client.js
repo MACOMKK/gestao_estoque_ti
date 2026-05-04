@@ -1,396 +1,265 @@
-const DB_KEY = 'gestao_estoque_local_db_v1';
+import { createClient } from '@supabase/supabase-js';
 
-const COLLECTIONS = {
-  Unit: 'units',
-  Employee: 'employees',
-  Asset: 'assets',
-  Info: 'infos',
-  KnowledgeBase: 'knowledge_base'
-};
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const createId = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-};
-
-const clone = (data) => JSON.parse(JSON.stringify(data));
-
-const makeSeedData = () => {
-  const now = new Date().toISOString();
-
-  const unitMatrizId = createId();
-  const unitFilialId = createId();
-
-  const empAnaId = createId();
-  const empCarlosId = createId();
-  const empJoaoId = createId();
-
-  return {
-    units: [
-      {
-        id: unitMatrizId,
-        name: 'Matriz Fortaleza',
-        city: 'Fortaleza',
-        address: 'Av. Santos Dumont, 1000',
-        phone: '(85) 3000-1000',
-        manager: 'Ana Souza',
-        status: 'ativa',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: unitFilialId,
-        name: 'Filial Juazeiro',
-        city: 'Juazeiro do Norte',
-        address: 'Rua Padre Cicero, 250',
-        phone: '(88) 3000-2000',
-        manager: 'Carlos Lima',
-        status: 'ativa',
-        created_date: now,
-        updated_date: now
-      }
-    ],
-    employees: [
-      {
-        id: empAnaId,
-        full_name: 'Ana Souza',
-        cpf: '111.111.111-11',
-        email: 'ana.souza@empresa.local',
-        phone: '(85) 99999-1111',
-        department: 'TI',
-        role: 'Coordenadora de TI',
-        unit_id: unitMatrizId,
-        unit_name: 'Matriz Fortaleza',
-        admission_date: '2024-01-10',
-        status: 'ativo',
-        termo_assinado: true,
-        termo_assinado_em: '2024-01-12',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: empCarlosId,
-        full_name: 'Carlos Lima',
-        cpf: '222.222.222-22',
-        email: 'carlos.lima@empresa.local',
-        phone: '(88) 99999-2222',
-        department: 'Operações',
-        role: 'Supervisor',
-        unit_id: unitFilialId,
-        unit_name: 'Filial Juazeiro',
-        admission_date: '2023-08-05',
-        status: 'ativo',
-        termo_assinado: false,
-        termo_assinado_em: '',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: empJoaoId,
-        full_name: 'João Martins',
-        cpf: '333.333.333-33',
-        email: 'joao.martins@empresa.local',
-        phone: '(85) 99999-3333',
-        department: 'Financeiro',
-        role: 'Analista Financeiro',
-        unit_id: unitMatrizId,
-        unit_name: 'Matriz Fortaleza',
-        admission_date: '2022-03-14',
-        status: 'ativo',
-        termo_assinado: true,
-        termo_assinado_em: '2022-03-15',
-        created_date: now,
-        updated_date: now
-      }
-    ],
-    assets: [
-      {
-        id: createId(),
-        tag: 'MAC-NTB-001',
-        name: 'Notebook Dell Latitude 5420',
-        category: 'notebook',
-        brand: 'Dell',
-        model: 'Latitude 5420',
-        serial_number: 'SN-NTB-001',
-        status: 'em_uso',
-        condition: 'bom',
-        unit_id: unitMatrizId,
-        unit_name: 'Matriz Fortaleza',
-        purchase_date: '2024-02-01',
-        purchase_value: 5200,
-        location: 'Sala TI',
-        assigned_to: 'Ana Souza',
-        assigned_to_email: 'ana.souza@empresa.local',
-        assigned_to_cpf: '111.111.111-11',
-        assigned_to_department: 'TI',
-        assignment_date: '2024-02-05',
-        notes: 'Equipamento principal da coordenação.',
-        image_url: '',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: createId(),
-        tag: 'MAC-MON-014',
-        name: 'Monitor LG 24"',
-        category: 'monitor',
-        brand: 'LG',
-        model: '24MK430H',
-        serial_number: 'SN-MON-014',
-        status: 'disponivel',
-        condition: 'novo',
-        unit_id: unitMatrizId,
-        unit_name: 'Matriz Fortaleza',
-        purchase_date: '2025-01-20',
-        purchase_value: 890,
-        location: 'Estoque TI',
-        assigned_to: '',
-        assigned_to_email: '',
-        assigned_to_cpf: '',
-        assigned_to_department: '',
-        assignment_date: '',
-        notes: '',
-        image_url: '',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: createId(),
-        tag: 'MAC-RTR-003',
-        name: 'Roteador Mikrotik RB4011',
-        category: 'roteador',
-        brand: 'Mikrotik',
-        model: 'RB4011',
-        serial_number: 'SN-RTR-003',
-        status: 'manutencao',
-        condition: 'regular',
-        unit_id: unitFilialId,
-        unit_name: 'Filial Juazeiro',
-        purchase_date: '2021-11-10',
-        purchase_value: 2400,
-        location: 'CPD Filial',
-        assigned_to: '',
-        assigned_to_email: '',
-        assigned_to_cpf: '',
-        assigned_to_department: '',
-        assignment_date: '',
-        notes: 'Apresentando instabilidade no link WAN.',
-        image_url: '',
-        created_date: now,
-        updated_date: now
-      }
-    ],
-    infos: [
-      {
-        id: createId(),
-        type: 'sistema',
-        title: 'ERP Corporativo',
-        value: 'https://erp.empresa.local',
-        description: 'Acesso ao sistema interno de gestão.',
-        contact_name: '',
-        contact_email: '',
-        contact_phone: '',
-        unit_name: 'Matriz Fortaleza',
-        unit_id: unitMatrizId,
-        assigned_to: '',
-        assigned_to_id: '',
-        assigned_to_department: '',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: createId(),
-        type: 'fornecedor',
-        title: 'Provedor de Internet X',
-        value: 'CNPJ 00.000.000/0001-00',
-        description: 'Fornecedor de link dedicado para matriz e filial.',
-        contact_name: 'Marina Alves',
-        contact_email: 'marina@provedorx.com.br',
-        contact_phone: '(85) 4000-0000',
-        unit_name: 'Matriz Fortaleza',
-        unit_id: unitMatrizId,
-        assigned_to: '',
-        assigned_to_id: '',
-        assigned_to_department: '',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: createId(),
-        type: 'chip_corporativo',
-        title: 'Linha Comercial 01',
-        value: '(85) 98888-1001',
-        description: 'Plano corporativo 20GB.',
-        contact_name: '',
-        contact_email: '',
-        contact_phone: '',
-        unit_name: 'Filial Juazeiro',
-        unit_id: unitFilialId,
-        assigned_to: 'Carlos Lima',
-        assigned_to_id: empCarlosId,
-        assigned_to_department: 'Operações',
-        created_date: now,
-        updated_date: now
-      }
-    ],
-    knowledge_base: [
-      {
-        id: createId(),
-        title: 'Política de Senhas',
-        category: 'TI',
-        type: 'link',
-        url: 'https://intranet.empresa.local/politica-senhas',
-        description: 'Diretrizes de criação e rotação de senhas.',
-        created_date: now,
-        updated_date: now
-      },
-      {
-        id: createId(),
-        title: 'Manual de Onboarding',
-        category: 'RH',
-        type: 'link',
-        url: 'https://intranet.empresa.local/onboarding',
-        description: 'Passo a passo para integração de novos colaboradores.',
-        created_date: now,
-        updated_date: now
-      }
-    ]
-  };
-};
-
-const loadDb = () => {
-  const empty = {
-    units: [],
-    employees: [],
-    assets: [],
-    infos: [],
-    knowledge_base: []
-  };
-  try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (!raw) {
-      const seeded = makeSeedData();
-      saveDb(seeded);
-      return seeded;
-    }
-    const parsed = JSON.parse(raw);
-    const merged = { ...empty, ...parsed };
-    const hasData = Object.values(merged).some((items) => Array.isArray(items) && items.length > 0);
-    if (!hasData) {
-      const seeded = makeSeedData();
-      saveDb(seeded);
-      return seeded;
-    }
-    return merged;
-  } catch {
-    const seeded = makeSeedData();
-    saveDb(seeded);
-    return seeded;
+const assertSupabaseConfigured = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase nao configurado. Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env.local');
   }
 };
 
-const saveDb = (db) => {
-  localStorage.setItem(DB_KEY, JSON.stringify(db));
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+const ENTITY_CONFIG = {
+  Unit: {
+    table: 'unidades',
+    fieldMap: {
+      id: 'id',
+      name: 'nome',
+      city: 'cidade',
+      address: 'endereco',
+      phone: 'telefone',
+      manager: 'responsavel',
+      status: 'status',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
+  },
+  Employee: {
+    table: 'colaboradores',
+    fieldMap: {
+      id: 'id',
+      full_name: 'nome_completo',
+      cpf: 'cpf',
+      email: 'email',
+      phone: 'telefone',
+      department: 'departamento',
+      role: 'cargo',
+      unit_id: 'unidade_id',
+      unit_name: 'unidade_nome',
+      admission_date: 'data_admissao',
+      status: 'status',
+      termo_assinado: 'termo_assinado',
+      termo_assinado_em: 'termo_assinado_em',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
+  },
+  Asset: {
+    table: 'ativos',
+    fieldMap: {
+      id: 'id',
+      tag: 'patrimonio',
+      name: 'nome',
+      category: 'categoria',
+      brand: 'marca',
+      model: 'modelo',
+      serial_number: 'numero_serie',
+      status: 'status',
+      condition: 'estado',
+      unit_id: 'unidade_id',
+      unit_name: 'unidade_nome',
+      purchase_date: 'data_compra',
+      purchase_value: 'valor_compra',
+      location: 'localizacao',
+      assigned_to: 'atribuido_para',
+      assigned_to_email: 'atribuido_para_email',
+      assigned_to_cpf: 'atribuido_para_cpf',
+      assigned_to_department: 'atribuido_para_departamento',
+      assignment_date: 'data_atribuicao',
+      notes: 'observacoes',
+      image_url: 'url_imagem',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
+  },
+  Info: {
+    table: 'informacoes',
+    fieldMap: {
+      id: 'id',
+      type: 'tipo',
+      title: 'titulo',
+      value: 'valor',
+      description: 'descricao',
+      contact_name: 'contato_nome',
+      contact_email: 'contato_email',
+      contact_phone: 'contato_telefone',
+      unit_name: 'unidade_nome',
+      unit_id: 'unidade_id',
+      assigned_to: 'atribuido_para',
+      assigned_to_id: 'atribuido_para_id',
+      assigned_to_department: 'atribuido_para_departamento',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
+  },
+  KnowledgeBase: {
+    table: 'base_conhecimento',
+    fieldMap: {
+      id: 'id',
+      title: 'titulo',
+      category: 'categoria',
+      type: 'tipo',
+      url: 'url',
+      description: 'descricao',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
+  }
 };
 
-const sortItems = (items, sort) => {
-  if (!sort) return items;
+const invertMap = (obj) =>
+  Object.entries(obj).reduce((acc, [k, v]) => {
+    acc[v] = k;
+    return acc;
+  }, {});
+
+const mapToDb = (payload, fieldMap) => {
+  const out = {};
+  Object.entries(payload || {}).forEach(([key, value]) => {
+    const dbKey = fieldMap[key] || key;
+    out[dbKey] = value;
+  });
+  return out;
+};
+
+const mapFromDb = (row, reverseFieldMap) => {
+  const out = {};
+  Object.entries(row || {}).forEach(([key, value]) => {
+    const appKey = reverseFieldMap[key] || key;
+    out[appKey] = value;
+  });
+  return out;
+};
+
+const parseSort = (sort) => {
+  if (!sort) return { column: 'criado_em', ascending: false };
   const desc = sort.startsWith('-');
   const field = desc ? sort.slice(1) : sort;
-  return [...items].sort((a, b) => {
-    const av = a[field];
-    const bv = b[field];
-    if (av === bv) return 0;
-    if (av == null) return 1;
-    if (bv == null) return -1;
-    if (av > bv) return desc ? -1 : 1;
-    return desc ? 1 : -1;
+  return { field, ascending: !desc };
+};
+
+const withTimeout = async (promise, ms = 15000) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('Tempo de resposta excedido no Supabase. Verifique internet, Auth anonimo e politicas RLS.'));
+    }, ms);
   });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const run = async (promise) => {
+  assertSupabaseConfigured();
+  const { data, error } = await withTimeout(promise);
+  if (error) throw error;
+  return data;
 };
 
 const createEntityApi = (entityName) => {
-  const collection = COLLECTIONS[entityName];
+  const cfg = ENTITY_CONFIG[entityName];
+  const reverseFieldMap = invertMap(cfg.fieldMap);
 
   return {
     async list(sort) {
-      const db = loadDb();
-      const items = db[collection] || [];
-      return clone(sortItems(items, sort));
+      assertSupabaseConfigured();
+      const parsed = parseSort(sort);
+      const dbSortColumn = cfg.fieldMap[parsed.field] || parsed.field;
+      const rows = await run(
+        supabase.from(cfg.table).select('*').order(dbSortColumn, { ascending: parsed.ascending })
+      );
+      return (rows || []).map((row) => mapFromDb(row, reverseFieldMap));
     },
 
     async filter(filters = {}) {
-      const db = loadDb();
-      const items = (db[collection] || []).filter((item) =>
-        Object.entries(filters).every(([key, value]) => item[key] === value)
-      );
-      return clone(items);
+      assertSupabaseConfigured();
+      let query = supabase.from(cfg.table).select('*');
+      const dbFilters = mapToDb(filters, cfg.fieldMap);
+      Object.entries(dbFilters).forEach(([key, value]) => {
+        query = query.eq(key, value);
+      });
+      const rows = await run(query);
+      return (rows || []).map((row) => mapFromDb(row, reverseFieldMap));
     },
 
     async create(payload) {
-      const db = loadDb();
-      const now = new Date().toISOString();
-      const item = {
-        id: createId(),
-        ...payload,
-        created_date: now,
-        updated_date: now
-      };
-      db[collection] = [...(db[collection] || []), item];
-      saveDb(db);
-      return clone(item);
+      assertSupabaseConfigured();
+      const row = await run(
+        supabase.from(cfg.table).insert(mapToDb(payload, cfg.fieldMap)).select('*').single()
+      );
+      return mapFromDb(row, reverseFieldMap);
     },
 
     async update(id, payload) {
-      const db = loadDb();
-      let updated = null;
-      db[collection] = (db[collection] || []).map((item) => {
-        if (item.id !== id) return item;
-        updated = {
-          ...item,
-          ...payload,
-          updated_date: new Date().toISOString()
-        };
-        return updated;
-      });
-      saveDb(db);
-      if (!updated) throw new Error(`Registro não encontrado: ${entityName} ${id}`);
-      return clone(updated);
+      assertSupabaseConfigured();
+      const row = await run(
+        supabase.from(cfg.table).update(mapToDb(payload, cfg.fieldMap)).eq('id', id).select('*').single()
+      );
+      return mapFromDb(row, reverseFieldMap);
     },
 
     async delete(id) {
-      const db = loadDb();
-      db[collection] = (db[collection] || []).filter((item) => item.id !== id);
-      saveDb(db);
+      assertSupabaseConfigured();
+      await run(supabase.from(cfg.table).delete().eq('id', id));
       return { success: true };
     }
   };
 };
 
-const localUser = {
-  id: 'local-user-admin',
-  email: 'admin@local.test',
-  full_name: 'Administrador Local',
-  role: 'admin'
+const uploadFile = async (file) => {
+  assertSupabaseConfigured();
+  const ext = file.name?.includes('.') ? file.name.split('.').pop() : 'bin';
+  const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: false });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from('uploads').getPublicUrl(path);
+  return { file_url: data.publicUrl };
 };
 
 export const base44 = {
   auth: {
     async me() {
-      return clone(localUser);
+      assertSupabaseConfigured();
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      const user = data?.user;
+      if (!user) {
+        const err = new Error('Usuario nao autenticado no Supabase');
+        err.status = 401;
+        throw err;
+      }
+      return {
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || 'Usuario',
+        role: 'admin'
+      };
     },
-    logout() {
-      return null;
+    async login(email, password) {
+      assertSupabaseConfigured();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return true;
+    },
+    async logout() {
+      assertSupabaseConfigured();
+      await supabase.auth.signOut();
     },
     redirectToLogin() {
-      return null;
+      window.location.href = '/login';
     }
   },
   integrations: {
     Core: {
       async UploadFile({ file }) {
-        return { file_url: URL.createObjectURL(file) };
+        return uploadFile(file);
       }
     }
   },

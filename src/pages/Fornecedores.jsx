@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Pencil, Trash2, Package } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Package, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import FornecedorFormDialog from '@/components/contatos/FornecedorFormDialog';
+import ImportDataDialog from '@/components/ImportDataDialog';
 
 export default function Fornecedores() {
   const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ export default function Fornecedores() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: infos = [], isLoading } = useQuery({
     queryKey: ['infos'],
@@ -52,9 +54,14 @@ export default function Fornecedores() {
           <h1 className="text-3xl font-extrabold tracking-tight">Fornecedores</h1>
           <p className="text-muted-foreground mt-1">{items.length} fornecedor{items.length !== 1 ? 'es' : ''} cadastrado{items.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => { setEditingItem(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="w-4 h-4" /> Novo Fornecedor
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="w-4 h-4" /> Importar
+          </Button>
+          <Button onClick={() => { setEditingItem(null); setFormOpen(true); }} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo Fornecedor
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -106,6 +113,15 @@ export default function Fornecedores() {
       )}
 
       <FornecedorFormDialog open={formOpen} onOpenChange={setFormOpen} info={editingItem} onSaved={refresh} />
+      <ImportDataDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        entityName="Info"
+        title="Importar Fornecedores"
+        presetFields={{ type: 'fornecedor' }}
+        helperText="O campo type sera preenchido automaticamente como fornecedor."
+        onImported={refresh}
+      />
 
       <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
         <AlertDialogContent>

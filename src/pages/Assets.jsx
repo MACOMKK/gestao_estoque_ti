@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, UserPlus, Pencil, Trash2, Download } from 'lucide-react';
+import { Plus, Search, UserPlus, Pencil, Trash2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { StatusBadge, getCategoryLabel } from '@/components/assets/AssetStatusBadge';
 import AssetFormDialog from '@/components/assets/AssetFormDialog';
 import AssignAssetDialog from '@/components/assets/AssignAssetDialog';
+import ImportDataDialog from '@/components/ImportDataDialog';
 
 export default function Assets() {
   const queryClient = useQueryClient();
@@ -23,6 +24,7 @@ export default function Assets() {
   const [editingAsset, setEditingAsset] = useState(null);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [deleteAsset, setDeleteAsset] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['assets'],
@@ -102,6 +104,9 @@ export default function Assets() {
           <p className="text-muted-foreground mt-1">{assets.length} equipamentos cadastrados</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="w-4 h-4" /> Importar
+          </Button>
           <Button variant="outline" onClick={handleExportCSV} className="gap-2">
             <Download className="w-4 h-4" /> Exportar CSV
           </Button>
@@ -217,6 +222,13 @@ export default function Assets() {
 
       <AssetFormDialog open={formOpen} onOpenChange={setFormOpen} asset={editingAsset} onSaved={refresh} />
       <AssignAssetDialog open={assignOpen} onOpenChange={setAssignOpen} asset={selectedAsset} onSaved={refresh} />
+      <ImportDataDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        entityName="Asset"
+        title="Importar Ativos"
+        onImported={refresh}
+      />
 
       <AlertDialog open={!!deleteAsset} onOpenChange={(open) => !open && setDeleteAsset(null)}>
         <AlertDialogContent>

@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
-      setAppPublicSettings({ mode: 'local', auth_required: false });
+      setAppPublicSettings({ mode: 'supabase', auth_required: true });
       await checkUserAuth();
       setIsLoadingPublicSettings(false);
     } catch (error) {
@@ -36,27 +36,28 @@ export const AuthProvider = ({ children }) => {
 
   const checkUserAuth = async () => {
     try {
-      // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
+      setAuthError(null);
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {
-      console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
+      setAuthError({
+        type: 'auth_required',
+        message: 'Authentication required'
+      });
     }
+  };
+
+  const login = async (email, password) => {
+    setIsLoadingAuth(true);
+    await base44.auth.login(email, password);
+    await checkUserAuth();
   };
 
   const logout = (shouldRedirect = true) => {
@@ -86,6 +87,7 @@ export const AuthProvider = ({ children }) => {
       authError,
       appPublicSettings,
       authChecked,
+      login,
       logout,
       navigateToLogin,
       checkUserAuth,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Pencil, Trash2, Globe, Wifi } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Globe, Wifi, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import InfoFormDialog from '@/components/info/InfoFormDialog';
+import ImportDataDialog from '@/components/ImportDataDialog';
 
 const typeConfig = {
   ip: { label: 'IP', icon: Wifi, color: 'bg-blue-100 text-blue-800 border-blue-200' },
@@ -24,6 +25,7 @@ export default function Infraestrutura() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingInfo, setEditingInfo] = useState(null);
   const [deleteInfo, setDeleteInfo] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: infos = [], isLoading } = useQuery({
     queryKey: ['infos'],
@@ -69,9 +71,14 @@ export default function Infraestrutura() {
           <h1 className="text-3xl font-extrabold tracking-tight">Infraestrutura</h1>
           <p className="text-muted-foreground mt-1">IPs de rede e sistemas/links de acesso</p>
         </div>
-        <Button onClick={() => { setEditingInfo(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="w-4 h-4" /> Novo Registro
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="w-4 h-4" /> Importar
+          </Button>
+          <Button onClick={() => { setEditingInfo(null); setFormOpen(true); }} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo Registro
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -147,6 +154,14 @@ export default function Infraestrutura() {
       )}
 
       <InfoFormDialog open={formOpen} onOpenChange={setFormOpen} info={editingInfo} onSaved={refresh} allowedTypes={INFRA_TYPES} />
+      <ImportDataDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        entityName="Info"
+        title="Importar Infraestrutura"
+        helperText="No arquivo, use o campo type com valores: ip ou sistema."
+        onImported={refresh}
+      />
 
       <AlertDialog open={!!deleteInfo} onOpenChange={(open) => !open && setDeleteInfo(null)}>
         <AlertDialogContent>
