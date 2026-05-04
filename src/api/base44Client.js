@@ -116,10 +116,21 @@ const invertMap = (obj) =>
   }, {});
 
 const mapToDb = (payload, fieldMap) => {
+  const nullableDateColumns = new Set([
+    'data_admissao',
+    'termo_assinado_em',
+    'data_compra',
+    'data_atribuicao'
+  ]);
+
   const out = {};
   Object.entries(payload || {}).forEach(([key, value]) => {
     const dbKey = fieldMap[key] || key;
-    out[dbKey] = value;
+    if (value === '' && nullableDateColumns.has(dbKey)) {
+      out[dbKey] = null;
+    } else {
+      out[dbKey] = value;
+    }
   });
   return out;
 };
@@ -252,6 +263,12 @@ export const base44 = {
       assertSupabaseConfigured();
       await supabase.auth.signOut();
     },
+    async getAccessToken() {
+      assertSupabaseConfigured();
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return data?.session?.access_token || '';
+    },
     redirectToLogin() {
       window.location.href = '/login';
     }
@@ -260,6 +277,27 @@ export const base44 = {
     Core: {
       async UploadFile({ file }) {
         return uploadFile(file);
+      }
+    },
+    Functions: {
+      async invoke(name, body) {
+        assertSupabaseConfigured();
+        const token = await base44.auth.getAccessToken();
+        const resp = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(body || {})
+        });
+
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          throw new Error(payload?.error || `Falha ao chamar function ${name}`);
+        }
+        return payload;
       }
     }
   },

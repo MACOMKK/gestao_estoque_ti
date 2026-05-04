@@ -47,15 +47,33 @@ export default function EmployeeFormDialog({ open, onOpenChange, employee, onSav
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    if (employee) {
-      await base44.entities.Employee.update(employee.id, form);
-    } else {
-      await base44.entities.Employee.create(form);
+    if (!form.department) {
+      window.alert('Selecione o departamento do colaborador.');
+      return;
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
+    if (!form.email?.trim()) {
+      window.alert('Email e obrigatorio para envio de termo.');
+      return;
+    }
+    if (!form.phone?.trim()) {
+      window.alert('Telefone e obrigatorio para envio de termo.');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (employee) {
+        await base44.entities.Employee.update(employee.id, form);
+      } else {
+        await base44.entities.Employee.create(form);
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Erro ao salvar colaborador:', error);
+      window.alert(error?.message || 'Falha ao salvar colaborador.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -85,11 +103,11 @@ export default function EmployeeFormDialog({ open, onOpenChange, employee, onSav
             </div>
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} />
+              <Input required type="email" value={form.email} onChange={e => update('email', e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label>Telefone</Label>
-              <Input value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(91) 99999-9999" />
+              <Input required value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(91) 99999-9999" />
             </div>
             <div className="space-y-1.5">
               <Label>Departamento *</Label>
