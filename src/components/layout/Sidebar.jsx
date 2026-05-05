@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,7 +13,9 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  LogOut
+  LogOut,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
@@ -30,7 +32,7 @@ const navItems = [
   { path: '/conhecimento', label: 'Base de Conhecimento', icon: BookOpen }
 ];
 
-export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen, theme, toggleTheme }) {
   const location = useLocation();
   const { logout } = useAuth();
   const logoUrl = 'https://res.cloudinary.com/drevbr5eq/image/upload/q_auto/f_auto/v1777603989/logo_vermelha_e2aob2.png';
@@ -111,6 +113,14 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         <div className="p-3 border-t border-border space-y-2">
           <Button
             variant="outline"
+            onClick={toggleTheme}
+            className={`w-full gap-2 ${collapsed ? 'px-0 justify-center' : ''}`}
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {!collapsed && <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</span>}
+          </Button>
+          <Button
+            variant="outline"
             onClick={handleLogout}
             className={`w-full gap-2 ${collapsed ? 'px-0 justify-center' : ''}`}
           >
@@ -118,10 +128,11 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
             {!collapsed && <span>Sair</span>}
           </Button>
           {!collapsed && (
-            <p className="text-[10px] text-muted-foreground text-center">MACOM Mitsubishi � {new Date().getFullYear()}</p>
+            <p className="text-[10px] text-muted-foreground text-center">MACOM Mitsubishi © {new Date().getFullYear()}</p>
           )}
         </div>
       </aside>
     </>
   );
 }
+
