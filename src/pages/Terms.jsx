@@ -42,8 +42,36 @@ export default function Terms() {
 
   const queryClient = useQueryClient();
 
+  const getLatestTermoByEmployee = async (employeeId) => {
+    const termos = await base44.entities.TermoPosse.filter({ colaborador_id: employeeId });
+    if (!termos?.length) return null;
+    return [...termos].sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
+  };
+
+  const upsertTermoPosse = async (emp, payload) => {
+    const latest = await getLatestTermoByEmployee(emp.id);
+    if (!latest || latest.status === 'assinado' || latest.status === 'cancelado') {
+      return base44.entities.TermoPosse.create({
+        colaborador_id: emp.id,
+        colaborador_nome: emp.full_name,
+        colaborador_email: emp.email || '',
+        status: 'gerado',
+        ...payload
+      });
+    }
+    return base44.entities.TermoPosse.update(latest.id, {
+      colaborador_nome: emp.full_name,
+      colaborador_email: emp.email || '',
+      ...payload
+    });
+  };
+
   const handleGeneratePDF = async (emp) => {
     await generateTermoPDF(emp, emp.assets);
+    await upsertTermoPosse(emp, {
+      status: 'gerado',
+      observacoes: 'Termo gerado manualmente na tela de termos.'
+    });
   };
 
   const blobToBase64 = async (blob) => {
@@ -101,6 +129,12 @@ export default function Terms() {
         pdf_base64
       });
 
+      await upsertTermoPosse(emp, {
+        status: 'enviado',
+        enviado_em: new Date().toISOString(),
+        observacoes: `Termo enviado por email para ${emp.email}.`
+      });
+
       window.alert('Email enviado com sucesso.');
     } catch (error) {
       window.alert(error?.message || 'Falha ao enviar email.');
@@ -110,9 +144,15 @@ export default function Terms() {
   };
 const handleToggleAssinado = async (emp) => {
     const novoStatus = !emp.termo_assinado;
+    const dataAssinatura = novoStatus ? new Date().toISOString().split('T')[0] : '';
     await base44.entities.Employee.update(emp.id, {
       termo_assinado: novoStatus,
-      termo_assinado_em: novoStatus ? new Date().toISOString().split('T')[0] : '',
+      termo_assinado_em: dataAssinatura,
+    });
+    await upsertTermoPosse(emp, {
+      status: novoStatus ? 'assinado' : 'enviado',
+      assinado_em: novoStatus ? new Date().toISOString() : null,
+      observacoes: novoStatus ? 'Termo marcado como assinado.' : 'Assinatura removida.'
     });
     queryClient.invalidateQueries({ queryKey: ['employees'] });
   };

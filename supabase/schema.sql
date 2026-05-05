@@ -15,6 +15,7 @@ create type public.categoria_ativo as enum (
 create type public.tipo_informacao as enum ('ip', 'sistema', 'fornecedor', 'chip_corporativo');
 create type public.categoria_conhecimento as enum ('TI', 'RH', 'Financeiro', 'Comercial', 'Operacoes', 'Geral');
 create type public.tipo_conhecimento as enum ('link', 'pdf');
+create type public.status_termo as enum ('gerado', 'enviado', 'assinado', 'cancelado');
 
 -- Optional profile table (helps replacing Base44 auth context)
 create table if not exists public.perfis (
@@ -139,6 +140,22 @@ create table if not exists public.base_conhecimento (
   atualizado_em timestamptz not null default now()
 );
 
+create table if not exists public.termos_posse (
+  id uuid primary key default gen_random_uuid(),
+  colaborador_id uuid not null references public.colaboradores(id) on delete cascade,
+  colaborador_nome text not null,
+  colaborador_email text not null,
+  status public.status_termo not null default 'gerado',
+  pdf_url text,
+  pdf_hash text,
+  enviado_em timestamptz,
+  assinado_em timestamptz,
+  observacoes text,
+  criado_por uuid references auth.users(id) on delete set null,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+
 -- Helpful indexes
 create index if not exists idx_unidades_status on public.unidades(status);
 create index if not exists idx_colaboradores_status on public.colaboradores(status);
@@ -149,6 +166,9 @@ create index if not exists idx_ativos_unidade_id on public.ativos(unidade_id);
 create index if not exists idx_informacoes_tipo on public.informacoes(tipo);
 create index if not exists idx_informacoes_unidade_id on public.informacoes(unidade_id);
 create index if not exists idx_informacoes_atribuido_para_id on public.informacoes(atribuido_para_id);
+create index if not exists idx_termos_posse_colaborador_id on public.termos_posse(colaborador_id);
+create index if not exists idx_termos_posse_status on public.termos_posse(status);
+create index if not exists idx_termos_posse_enviado_em on public.termos_posse(enviado_em);
 
 -- Keep atualizado_em fresh
 create or replace function public.set_atualizado_em()
@@ -190,6 +210,10 @@ create trigger trg_base_conhecimento_atualizado_em
 before update on public.base_conhecimento
 for each row execute function public.set_atualizado_em();
 
+create trigger trg_termos_posse_atualizado_em
+before update on public.termos_posse
+for each row execute function public.set_atualizado_em();
+
 -- RLS
 alter table public.perfis enable row level security;
 alter table public.unidades enable row level security;
@@ -197,6 +221,7 @@ alter table public.colaboradores enable row level security;
 alter table public.ativos enable row level security;
 alter table public.informacoes enable row level security;
 alter table public.base_conhecimento enable row level security;
+alter table public.termos_posse enable row level security;
 
 -- Basic authenticated access policies (adjust later by role)
 create policy "perfis_select_proprio" on public.perfis
@@ -233,6 +258,11 @@ using (true)
 with check (true);
 
 create policy "base_conhecimento_crud_authenticated" on public.base_conhecimento
+for all to authenticated
+using (true)
+with check (true);
+
+create policy "termos_posse_crud_authenticated" on public.termos_posse
 for all to authenticated
 using (true)
 with check (true);

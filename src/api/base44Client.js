@@ -106,6 +106,24 @@ const ENTITY_CONFIG = {
       created_date: 'criado_em',
       updated_date: 'atualizado_em'
     }
+  },
+  TermoPosse: {
+    table: 'termos_posse',
+    fieldMap: {
+      id: 'id',
+      colaborador_id: 'colaborador_id',
+      colaborador_nome: 'colaborador_nome',
+      colaborador_email: 'colaborador_email',
+      status: 'status',
+      pdf_url: 'pdf_url',
+      pdf_hash: 'pdf_hash',
+      enviado_em: 'enviado_em',
+      assinado_em: 'assinado_em',
+      observacoes: 'observacoes',
+      criado_por: 'criado_por',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
   }
 };
 
@@ -306,6 +324,7 @@ export const base44 = {
     Employee: createEntityApi('Employee'),
     Asset: createEntityApi('Asset'),
     Info: createEntityApi('Info'),
-    KnowledgeBase: createEntityApi('KnowledgeBase')
+    KnowledgeBase: createEntityApi('KnowledgeBase'),
+    TermoPosse: createEntityApi('TermoPosse')
   }
 };
