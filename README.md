@@ -1,39 +1,32 @@
-**Welcome to your Base44 project** 
+# Gestao de Estoque TI (Supabase)
 
-**About**
-
-View and Edit  your app on [Base44.com](http://Base44.com) 
-
-This project contains everything you need to run your app locally.
-
-**Edit the code in your local development environment**
-
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
-
+## Rodar local
+1. `npm install`
+2. Criar `.env.local`:
+```env
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
+3. `npm run dev`
 
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
-```
+## Arquitetura (resumo)
+- `auth.users`: identidade e login/senha.
+- `public.perfis`: autorização da conta (`perfil = admin|user`) e vínculo opcional com colaborador (`colaborador_id`).
+- `public.colaboradores`: dados de negócio (RH/ativos).
+- `public.colaboradores_com_acesso` (VIEW): expõe `perfil_acesso` por colaborador para a tela de Colaboradores.
 
-Run the app: `npm run dev`
+## Regras de acesso atuais
+- Apenas `perfil = admin` pode acessar o painel.
+- Usuário `user` não entra no sistema.
+- Escrita (create/update/delete/functions) é bloqueada no client para não-admin.
 
-**Publish your changes**
+## Fila de e-mail
+- Tabela: `public.email_queue`
+- Worker: `supabase/functions/process-email-queue`
+- Disparo:
+  - imediato no envio de termo
+  - cron de backup a cada 1 minuto
 
-Open [Base44.com](http://Base44.com) and click on Publish.
-
-**Docs & Support**
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+## Funções Supabase
+- `process-email-queue`: processa fila de e-mail.
+- `admin-create-user`: cria/atualiza usuário de acesso e perfil.

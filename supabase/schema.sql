@@ -226,6 +226,39 @@ begin
 end;
 $$;
 
+create or replace function public.block_delete_colaborador_com_ativos()
+returns trigger
+language plpgsql
+as $$
+begin
+  if exists (
+    select 1
+    from public.ativos a
+    where
+      (old.nome_completo is not null and a.atribuido_para = old.nome_completo)
+      or (old.email is not null and a.atribuido_para_email = old.email)
+      or (old.cpf is not null and a.atribuido_para_cpf = old.cpf)
+  ) then
+    raise exception 'Nao e permitido excluir colaborador com ativos vinculados.';
+  end if;
+
+  return old;
+end;
+$$;
+
+create or replace function public.cleanup_perfil_ao_excluir_colaborador()
+returns trigger
+language plpgsql
+as $$
+begin
+  delete from public.perfis
+  where colaborador_id = old.id
+    and perfil = 'user';
+
+  return old;
+end;
+$$;
+
 create trigger trg_perfis_atualizado_em
 before update on public.perfis
 for each row execute function public.set_atualizado_em();
@@ -262,6 +295,16 @@ for each row execute function public.set_atualizado_em();
 create trigger trg_email_queue_updated_at
 before update on public.email_queue
 for each row execute function public.set_email_queue_updated_at();
+
+drop trigger if exists trg_block_delete_colaborador_com_ativos on public.colaboradores;
+create trigger trg_block_delete_colaborador_com_ativos
+before delete on public.colaboradores
+for each row execute function public.block_delete_colaborador_com_ativos();
+
+drop trigger if exists trg_cleanup_perfil_ao_excluir_colaborador on public.colaboradores;
+create trigger trg_cleanup_perfil_ao_excluir_colaborador
+after delete on public.colaboradores
+for each row execute function public.cleanup_perfil_ao_excluir_colaborador();
 
 -- RLS
 alter table public.perfis enable row level security;

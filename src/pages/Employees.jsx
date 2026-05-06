@@ -46,9 +46,13 @@ export default function Employees() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['employees'] });
 
   const handleDelete = async () => {
-    await base44.entities.Employee.delete(deleteEmployee.id);
-    setDeleteEmployee(null);
-    refresh();
+    try {
+      await base44.entities.Employee.delete(deleteEmployee.id);
+      setDeleteEmployee(null);
+      refresh();
+    } catch (error) {
+      window.alert(error?.message || 'Falha ao excluir colaborador.');
+    }
   };
 
   const getAssetCount = (employeeName) => {

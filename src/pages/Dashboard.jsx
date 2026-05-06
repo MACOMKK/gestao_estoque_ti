@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Monitor, Users, CheckCircle, AlertTriangle, Wrench, Trash2 } from 'lucide-react';
+import { Monitor, Users, CheckCircle, Wrench } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import StatsCard from '@/components/dashboard/StatsCard';
