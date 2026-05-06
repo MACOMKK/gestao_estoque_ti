@@ -28,7 +28,12 @@ export default function Login() {
       await login(email.trim(), password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err?.message || 'Falha ao autenticar. Verifique email e senha.');
+      const message = err?.message || '';
+      if (message.toLowerCase().includes('inativo')) {
+        setError('Seu acesso esta desativado. Entre em contato com RH/TI para reativacao.');
+      } else {
+        setError(message || 'Falha ao autenticar. Verifique email e senha.');
+      }
     } finally {
       setLoading(false);
     }

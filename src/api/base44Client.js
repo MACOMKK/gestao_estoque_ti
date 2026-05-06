@@ -363,12 +363,18 @@ export const base44 = {
         .select('perfil')
         .eq('id', user.id)
         .maybeSingle();
+      const { data: employeeAccessData } = await supabase
+        .from('colaboradores_com_acesso')
+        .select('status')
+        .eq('email', user.email)
+        .maybeSingle();
 
       return {
         id: user.id,
         email: user.email,
         full_name: user.user_metadata?.full_name || 'Usuario',
-        role: perfilData?.perfil || 'user'
+        role: perfilData?.perfil || 'user',
+        status: employeeAccessData?.status || 'ativo'
       };
     },
     async login(email, password) {

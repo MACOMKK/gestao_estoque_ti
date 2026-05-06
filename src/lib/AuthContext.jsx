@@ -39,6 +39,19 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
 
+      if (currentUser?.status === 'inativo') {
+        await base44.auth.logout();
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError({
+          type: 'inactive_user',
+          message: 'Acesso bloqueado. Seu usuario esta inativo.'
+        });
+        setIsLoadingAuth(false);
+        setAuthChecked(true);
+        return;
+      }
+
       if (currentUser?.role !== 'admin') {
         await base44.auth.logout();
         setUser(null);
@@ -73,6 +86,19 @@ export const AuthProvider = ({ children }) => {
     setIsLoadingAuth(true);
     await base44.auth.login(email, password);
     const currentUser = await base44.auth.me();
+
+    if (currentUser?.status === 'inativo') {
+      await base44.auth.logout();
+      setUser(null);
+      setIsAuthenticated(false);
+      setAuthChecked(true);
+      setIsLoadingAuth(false);
+      setAuthError({
+        type: 'inactive_user',
+        message: 'Acesso bloqueado. Seu usuario esta inativo.'
+      });
+      throw new Error('Acesso bloqueado. Seu usuario esta inativo.');
+    }
 
     if (currentUser?.role !== 'admin') {
       await base44.auth.logout();

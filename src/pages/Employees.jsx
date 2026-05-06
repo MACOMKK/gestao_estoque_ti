@@ -13,7 +13,6 @@ import EmployeeFormDialog from '@/components/employees/EmployeeFormDialog';
 import CreateAccessDialog from '@/components/employees/CreateAccessDialog';
 import ImportDataDialog from '@/components/ImportDataDialog';
 import { useAuth } from '@/lib/AuthContext';
-import { formatCpf, maskCpf } from '@/lib/cpf';
 
 export default function Employees() {
   const { user } = useAuth();
@@ -60,11 +59,9 @@ export default function Employees() {
   };
 
   const filtered = employees.filter(e => {
-    const cpfFormatted = formatCpf(e.cpf || '');
     const matchSearch = !search || 
       e.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      e.cpf?.includes(search) ||
-      cpfFormatted.includes(search) ||
+      e.phone?.toLowerCase().includes(search.toLowerCase()) ||
       e.department?.toLowerCase().includes(search.toLowerCase());
     const matchUnit = unitFilter === 'all' || e.unit_id === unitFilter;
     return matchSearch && matchUnit;
@@ -103,7 +100,7 @@ export default function Employees() {
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome, CPF ou departamento..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+            <Input placeholder="Buscar por nome, telefone ou departamento..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <Select value={unitFilter} onValueChange={setUnitFilter}>
             <SelectTrigger className="w-full md:w-44">
@@ -123,7 +120,7 @@ export default function Employees() {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="font-bold">Nome</TableHead>
-                <TableHead className="font-bold hidden md:table-cell">CPF</TableHead>
+                <TableHead className="font-bold hidden md:table-cell">Telefone</TableHead>
                 <TableHead className="font-bold">Departamento</TableHead>
                 <TableHead className="font-bold hidden lg:table-cell">Cargo</TableHead>
                 <TableHead className="font-bold hidden lg:table-cell">Acesso</TableHead>
@@ -150,7 +147,7 @@ export default function Employees() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-sm font-mono">
-                      {emp.cpf ? (isAdmin ? formatCpf(emp.cpf) : maskCpf(emp.cpf)) : '—'}
+                      {emp.phone || '—'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-medium">{emp.department}</Badge>

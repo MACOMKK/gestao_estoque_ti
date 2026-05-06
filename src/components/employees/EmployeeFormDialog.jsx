@@ -9,6 +9,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Save, Loader2 } from 'lucide-react';
 
 const departments = ['TI', 'Administrativo', 'Financeiro', 'Comercial', 'RH', 'Pós-Vendas', 'Diretoria', 'Marketing', 'Operações', 'Outro'];
+const employeeStatuses = [
+  { value: 'ativo', label: 'Ativo' },
+  { value: 'inativo', label: 'Inativo' },
+];
 
 const emptyForm = {
   full_name: '', cpf: '', email: '', phone: '',
@@ -125,6 +129,15 @@ export default function EmployeeFormDialog({ open, onOpenChange, employee, onSav
             <div className="space-y-1.5">
               <Label>Data de Admissão</Label>
               <Input type="date" value={form.admission_date} onChange={e => update('admission_date', e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={v => update('status', v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {employeeStatuses.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="md:col-span-2 space-y-1.5">
               <Label>Unidade / Filial</Label>
