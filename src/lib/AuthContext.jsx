@@ -38,12 +38,27 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+
+      if (currentUser?.role !== 'admin') {
+        await base44.auth.logout();
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError({
+          type: 'forbidden',
+          message: 'Acesso negado. Apenas administradores podem acessar o painel.'
+        });
+        setIsLoadingAuth(false);
+        setAuthChecked(true);
+        return;
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
       setAuthError(null);
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {
+      setUser(null);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
@@ -57,7 +72,26 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setIsLoadingAuth(true);
     await base44.auth.login(email, password);
-    await checkUserAuth();
+    const currentUser = await base44.auth.me();
+
+    if (currentUser?.role !== 'admin') {
+      await base44.auth.logout();
+      setUser(null);
+      setIsAuthenticated(false);
+      setAuthChecked(true);
+      setIsLoadingAuth(false);
+      setAuthError({
+        type: 'forbidden',
+        message: 'Acesso negado. Apenas administradores podem acessar o painel.'
+      });
+      throw new Error('Acesso negado. Apenas administradores podem acessar o painel.');
+    }
+
+    setUser(currentUser);
+    setIsAuthenticated(true);
+    setAuthError(null);
+    setIsLoadingAuth(false);
+    setAuthChecked(true);
   };
 
   const logout = (shouldRedirect = true) => {

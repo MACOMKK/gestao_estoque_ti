@@ -9,8 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { getCategoryLabel } from '@/components/assets/AssetStatusBadge';
 import { generateTermoPDF } from '@/lib/generateTermoPDF';
+import { useAuth } from '@/lib/AuthContext';
+import { formatCpf, maskCpf } from '@/lib/cpf';
 
 export default function Terms() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [sendingEmailFor, setSendingEmailFor] = useState('');
@@ -120,14 +124,27 @@ export default function Terms() {
         </div>
       `;
 
-      await base44.integrations.Functions.invoke('enviar-termo-gmail', {
-        to: emp.email,
-        subject: `Termo de Responsabilidade - ${emp.full_name}`,
-        body_text: `Ol\u00e1 ${emp.full_name},\n\nSegue em anexo o seu termo de responsabilidade de equipamentos de TI.\n\nAtenciosamente,\nEquipe de TI`,
-        body_html: bodyHtml,
-        filename,
-        pdf_base64
+      await base44.entities.EmailQueue.create({
+        tipo: 'termo_posse',
+        payload: {
+          to: emp.email,
+          subject: `Termo de Responsabilidade - ${emp.full_name}`,
+          body_text: `Ol\u00e1 ${emp.full_name},\n\nSegue em anexo o seu termo de responsabilidade de equipamentos de TI.\n\nAtenciosamente,\nEquipe de TI`,
+          body_html: bodyHtml,
+          filename,
+          pdf_base64
+        },
+        status: 'pending',
+        scheduled_at: new Date().toISOString()
       });
+
+      // Dispara processamento imediato da fila para reduzir tempo de entrega.
+      // O cron continua como fallback para retentativas/pendencias.
+      try {
+        await base44.integrations.Functions.invoke('process-email-queue', { batch_size: 10 });
+      } catch (invokeError) {
+        console.warn('Falha ao disparar processamento imediato da fila:', invokeError);
+      }
 
       await upsertTermoPosse(emp, {
         status: 'enviado',
@@ -135,7 +152,7 @@ export default function Terms() {
         observacoes: `Termo enviado por email para ${emp.email}.`
       });
 
-      window.alert('Email enviado com sucesso.');
+      window.alert('Email enfileirado com sucesso. O processamento foi disparado agora.');
     } catch (error) {
       window.alert(error?.message || 'Falha ao enviar email.');
     } finally {
@@ -231,33 +248,39 @@ const handleToggleAssinado = async (emp) => {
                   )}
 
                   <div className="space-y-1 text-xs text-muted-foreground">
-                    {emp.cpf && <p>CPF: {emp.cpf}</p>}
+                    {emp.cpf && <p>CPF: {isAdmin ? formatCpf(emp.cpf) : maskCpf(emp.cpf)}</p>}
                     {emp.email && <p>{emp.email}</p>}
                     {emp.role && <p>Cargo: {emp.role}</p>}
                   </div>
                   <div className="flex flex-col gap-2 mt-4">
-                    <Button onClick={() => handleGeneratePDF(emp)} className="w-full gap-2" size="sm">
-                      <Download className="w-4 h-4" /> Gerar Termo PDF
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-2"
-                      disabled={sendingEmailFor === emp.id}
-                      onClick={() => handleSendEmail(emp)}
-                    >
-                      {sendingEmailFor === emp.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                      Enviar por Email
-                    </Button>
-                    <Button
-                      variant={emp.termo_assinado ? 'outline' : 'secondary'}
-                      size="sm"
-                      className={`w-full gap-2 ${emp.termo_assinado ? 'text-muted-foreground' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'}`}
-                      onClick={() => handleToggleAssinado(emp)}
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      {emp.termo_assinado ? 'Desmarcar Assinatura' : 'Marcar como Assinado'}
-                    </Button>
+                    {isAdmin && (
+                      <Button onClick={() => handleGeneratePDF(emp)} className="w-full gap-2" size="sm">
+                        <Download className="w-4 h-4" /> Gerar Termo PDF
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2"
+                          disabled={sendingEmailFor === emp.id}
+                          onClick={() => handleSendEmail(emp)}
+                        >
+                          {sendingEmailFor === emp.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                          Enviar por Email
+                        </Button>
+                        <Button
+                          variant={emp.termo_assinado ? 'outline' : 'secondary'}
+                          size="sm"
+                          className={`w-full gap-2 ${emp.termo_assinado ? 'text-muted-foreground' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'}`}
+                          onClick={() => handleToggleAssinado(emp)}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          {emp.termo_assinado ? 'Desmarcar Assinatura' : 'Marcar como Assinado'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 

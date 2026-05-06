@@ -41,22 +41,32 @@ export default function KnowledgeFormDialog({ open, onOpenChange, item, onSaved 
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm(prev => ({ ...prev, url: file_url }));
-    setUploading(false);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(prev => ({ ...prev, url: file_url }));
+    } catch (error) {
+      window.alert(error?.message || 'Falha ao enviar PDF.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    if (item) {
-      await base44.entities.KnowledgeBase.update(item.id, form);
-    } else {
-      await base44.entities.KnowledgeBase.create(form);
+    try {
+      if (item) {
+        await base44.entities.KnowledgeBase.update(item.id, form);
+      } else {
+        await base44.entities.KnowledgeBase.create(form);
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (error) {
+      window.alert(error?.message || 'Falha ao salvar base de conhecimento.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   return (
@@ -94,7 +104,7 @@ export default function KnowledgeFormDialog({ open, onOpenChange, item, onSaved 
                   <SelectItem value="RH">RH</SelectItem>
                   <SelectItem value="Financeiro">Financeiro</SelectItem>
                   <SelectItem value="Comercial">Comercial</SelectItem>
-                  <SelectItem value="Operações">Operações</SelectItem>
+                  <SelectItem value="Operacoes">Operacoes</SelectItem>
                   <SelectItem value="Geral">Geral</SelectItem>
                 </SelectContent>
               </Select>

@@ -7,8 +7,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import UnitFormDialog from '@/components/units/UnitFormDialog';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Units() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
@@ -55,9 +58,11 @@ export default function Units() {
           <h1 className="text-3xl font-extrabold tracking-tight">Unidades / Filiais</h1>
           <p className="text-muted-foreground mt-1">{units.length} unidade{units.length !== 1 ? 's' : ''} cadastrada{units.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => { setEditingUnit(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="w-4 h-4" /> Nova Unidade
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => { setEditingUnit(null); setFormOpen(true); }} className="gap-2">
+            <Plus className="w-4 h-4" /> Nova Unidade
+          </Button>
+        )}
       </div>
 
       {units.length === 0 ? (
@@ -65,9 +70,11 @@ export default function Units() {
           <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-lg font-semibold text-muted-foreground">Nenhuma unidade cadastrada</p>
           <p className="text-sm text-muted-foreground mt-1">Cadastre as filiais da MACOM para organizar os ativos</p>
-          <Button onClick={() => { setEditingUnit(null); setFormOpen(true); }} className="mt-4 gap-2">
-            <Plus className="w-4 h-4" /> Cadastrar Primeira Unidade
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => { setEditingUnit(null); setFormOpen(true); }} className="mt-4 gap-2">
+              <Plus className="w-4 h-4" /> Cadastrar Primeira Unidade
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -124,23 +131,25 @@ export default function Units() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => { setEditingUnit(unit); setFormOpen(true); }}>
-                    <Pencil className="w-3.5 h-3.5" /> Editar
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteUnit(unit)}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => { setEditingUnit(unit); setFormOpen(true); }}>
+                      <Pencil className="w-3.5 h-3.5" /> Editar
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteUnit(unit)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      <UnitFormDialog open={formOpen} onOpenChange={setFormOpen} unit={editingUnit} onSaved={refresh} />
+      {isAdmin && <UnitFormDialog open={formOpen} onOpenChange={setFormOpen} unit={editingUnit} onSaved={refresh} />}
 
-      <AlertDialog open={!!deleteUnit} onOpenChange={(open) => !open && setDeleteUnit(null)}>
+      <AlertDialog open={isAdmin && !!deleteUnit} onOpenChange={(open) => !open && setDeleteUnit(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Unidade</AlertDialogTitle>

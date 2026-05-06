@@ -12,8 +12,11 @@ import { StatusBadge, getCategoryLabel } from '@/components/assets/AssetStatusBa
 import AssetFormDialog from '@/components/assets/AssetFormDialog';
 import AssignAssetDialog from '@/components/assets/AssignAssetDialog';
 import ImportDataDialog from '@/components/ImportDataDialog';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Assets() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -104,15 +107,19 @@ export default function Assets() {
           <p className="text-muted-foreground mt-1">{assets.length} equipamentos cadastrados</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-            <Upload className="w-4 h-4" /> Importar
-          </Button>
           <Button variant="outline" onClick={handleExportCSV} className="gap-2">
             <Download className="w-4 h-4" /> Exportar CSV
           </Button>
-          <Button onClick={() => { setEditingAsset(null); setFormOpen(true); }} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Ativo
-          </Button>
+          {isAdmin && (
+            <>
+              <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+                <Upload className="w-4 h-4" /> Importar
+              </Button>
+              <Button onClick={() => { setEditingAsset(null); setFormOpen(true); }} className="gap-2">
+                <Plus className="w-4 h-4" /> Novo Ativo
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -200,17 +207,19 @@ export default function Assets() {
                     <TableCell className="hidden lg:table-cell text-sm">{asset.unit_name || '—'}</TableCell>
                     <TableCell className="hidden md:table-cell text-sm">{asset.assigned_to || '—'}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedAsset(asset); setAssignOpen(true); }}>
-                          <UserPlus className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingAsset(asset); setFormOpen(true); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteAsset(asset)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedAsset(asset); setAssignOpen(true); }}>
+                            <UserPlus className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingAsset(asset); setFormOpen(true); }}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteAsset(asset)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -220,17 +229,21 @@ export default function Assets() {
         </div>
       </Card>
 
-      <AssetFormDialog open={formOpen} onOpenChange={setFormOpen} asset={editingAsset} onSaved={refresh} />
-      <AssignAssetDialog open={assignOpen} onOpenChange={setAssignOpen} asset={selectedAsset} onSaved={refresh} />
-      <ImportDataDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        entityName="Asset"
-        title="Importar Ativos"
-        onImported={refresh}
-      />
+      {isAdmin && (
+        <>
+          <AssetFormDialog open={formOpen} onOpenChange={setFormOpen} asset={editingAsset} onSaved={refresh} />
+          <AssignAssetDialog open={assignOpen} onOpenChange={setAssignOpen} asset={selectedAsset} onSaved={refresh} />
+          <ImportDataDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            entityName="Asset"
+            title="Importar Ativos"
+            onImported={refresh}
+          />
+        </>
+      )}
 
-      <AlertDialog open={!!deleteAsset} onOpenChange={(open) => !open && setDeleteAsset(null)}>
+      <AlertDialog open={isAdmin && !!deleteAsset} onOpenChange={(open) => !open && setDeleteAsset(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Ativo</AlertDialogTitle>

@@ -78,14 +78,19 @@ export default function ChipFormDialog({ open, onOpenChange, info, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    if (info) {
-      await base44.entities.Info.update(info.id, form);
-    } else {
-      await base44.entities.Info.create(form);
+    try {
+      if (info) {
+        await base44.entities.Info.update(info.id, form);
+      } else {
+        await base44.entities.Info.create(form);
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (error) {
+      window.alert(error?.message || 'Falha ao salvar chip corporativo.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   return (

@@ -95,14 +95,19 @@ export default function InfoFormDialog({ open, onOpenChange, info, onSaved, allo
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    if (info) {
-      await base44.entities.Info.update(info.id, form);
-    } else {
-      await base44.entities.Info.create(form);
+    try {
+      if (info) {
+        await base44.entities.Info.update(info.id, form);
+      } else {
+        await base44.entities.Info.create(form);
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (error) {
+      window.alert(error?.message || 'Falha ao salvar registro de infraestrutura.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   const availableTypes = allowedTypes

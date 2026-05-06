@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import InfoFormDialog from '@/components/info/InfoFormDialog';
 import ImportDataDialog from '@/components/ImportDataDialog';
+import { useAuth } from '@/lib/AuthContext';
 
 const typeConfig = {
   ip: { label: 'IP', icon: Wifi, color: 'bg-blue-100 text-blue-800 border-blue-200' },
@@ -19,6 +20,8 @@ const typeConfig = {
 const INFRA_TYPES = ['ip', 'sistema'];
 
 export default function Infraestrutura() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -72,12 +75,16 @@ export default function Infraestrutura() {
           <p className="text-muted-foreground mt-1">IPs de rede e sistemas/links de acesso</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-            <Upload className="w-4 h-4" /> Importar
-          </Button>
-          <Button onClick={() => { setEditingInfo(null); setFormOpen(true); }} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Registro
-          </Button>
+          {isAdmin && (
+            <>
+              <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+                <Upload className="w-4 h-4" /> Importar
+              </Button>
+              <Button onClick={() => { setEditingInfo(null); setFormOpen(true); }} className="gap-2">
+                <Plus className="w-4 h-4" /> Novo Registro
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -136,14 +143,16 @@ export default function Infraestrutura() {
                         )}
                         {info.description && <p className="text-xs text-muted-foreground mt-1">{info.description}</p>}
                       </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingInfo(info); setFormOpen(true); }}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteInfo(info)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingInfo(info); setFormOpen(true); }}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteInfo(info)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </Card>
                 ))}
@@ -153,17 +162,21 @@ export default function Infraestrutura() {
         })
       )}
 
-      <InfoFormDialog open={formOpen} onOpenChange={setFormOpen} info={editingInfo} onSaved={refresh} allowedTypes={INFRA_TYPES} />
-      <ImportDataDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        entityName="Info"
-        title="Importar Infraestrutura"
-        helperText="No arquivo, use o campo type com valores: ip ou sistema."
-        onImported={refresh}
-      />
+      {isAdmin && (
+        <>
+          <InfoFormDialog open={formOpen} onOpenChange={setFormOpen} info={editingInfo} onSaved={refresh} allowedTypes={INFRA_TYPES} />
+          <ImportDataDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            entityName="Info"
+            title="Importar Infraestrutura"
+            helperText="No arquivo, use o campo type com valores: ip ou sistema."
+            onImported={refresh}
+          />
+        </>
+      )}
 
-      <AlertDialog open={!!deleteInfo} onOpenChange={(open) => !open && setDeleteInfo(null)}>
+      <AlertDialog open={isAdmin && !!deleteInfo} onOpenChange={(open) => !open && setDeleteInfo(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Registro</AlertDialogTitle>

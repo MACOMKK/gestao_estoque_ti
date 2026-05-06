@@ -19,6 +19,7 @@ import Fornecedores from '@/pages/Fornecedores';
 import ChipsCorporativos from '@/pages/ChipsCorporativos';
 import KnowledgeBase from '@/pages/KnowledgeBase';
 import Login from '@/pages/Login';
+import ResetPassword from '@/pages/ResetPassword';
 
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />

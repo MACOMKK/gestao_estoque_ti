@@ -9,8 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import FornecedorFormDialog from '@/components/contatos/FornecedorFormDialog';
 import ImportDataDialog from '@/components/ImportDataDialog';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Fornecedores() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
@@ -55,12 +58,16 @@ export default function Fornecedores() {
           <p className="text-muted-foreground mt-1">{items.length} fornecedor{items.length !== 1 ? 'es' : ''} cadastrado{items.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-            <Upload className="w-4 h-4" /> Importar
-          </Button>
-          <Button onClick={() => { setEditingItem(null); setFormOpen(true); }} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Fornecedor
-          </Button>
+          {isAdmin && (
+            <>
+              <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+                <Upload className="w-4 h-4" /> Importar
+              </Button>
+              <Button onClick={() => { setEditingItem(null); setFormOpen(true); }} className="gap-2">
+                <Plus className="w-4 h-4" /> Novo Fornecedor
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -98,32 +105,38 @@ export default function Fornecedores() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setFormOpen(true); }}>
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteItem(item)}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setFormOpen(true); }}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteItem(item)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
           ))}
         </div>
       )}
 
-      <FornecedorFormDialog open={formOpen} onOpenChange={setFormOpen} info={editingItem} onSaved={refresh} />
-      <ImportDataDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        entityName="Info"
-        title="Importar Fornecedores"
-        presetFields={{ type: 'fornecedor' }}
-        helperText="O campo type sera preenchido automaticamente como fornecedor."
-        onImported={refresh}
-      />
+      {isAdmin && (
+        <>
+          <FornecedorFormDialog open={formOpen} onOpenChange={setFormOpen} info={editingItem} onSaved={refresh} />
+          <ImportDataDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            entityName="Info"
+            title="Importar Fornecedores"
+            presetFields={{ type: 'fornecedor' }}
+            helperText="O campo type sera preenchido automaticamente como fornecedor."
+            onImported={refresh}
+          />
+        </>
+      )}
 
-      <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
+      <AlertDialog open={isAdmin && !!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Fornecedor</AlertDialogTitle>

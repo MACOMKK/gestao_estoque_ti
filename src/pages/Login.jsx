@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -15,7 +16,9 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -31,6 +34,24 @@ export default function Login() {
     }
   };
 
+  const onForgotPassword = async () => {
+    setError('');
+    setResetMessage('');
+    if (!email.trim()) {
+      setError('Informe seu email para receber o link de redefinicao.');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      await base44.auth.requestPasswordReset(email.trim());
+      setResetMessage('Enviamos um link para redefinir sua senha no email informado.');
+    } catch (err) {
+      setError(err?.message || 'Falha ao enviar link de redefinicao.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen relative flex items-center justify-center px-4 py-8 overflow-hidden">
       <div
@@ -43,7 +64,7 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/30 bg-white/16 backdrop-blur-md shadow-2xl p-7 sm:p-8">
         <div className="mb-7 pb-5 border-b border-white/30 text-center">
           <img src={logoUrl} alt="Logo" className="w-14 h-14 object-contain mx-auto" />
-          <p className="mt-4 text-sm text-white/90">Entre com seu usuario corporativo.</p>
+          <p className="mt-4 text-sm text-white/90">Acesso administrativo do sistema.</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4 max-w-sm mx-auto w-full">
@@ -71,6 +92,16 @@ export default function Login() {
           </div>
 
           {error && <p className="text-sm text-red-200 pt-1">{error}</p>}
+          {resetMessage && <p className="text-sm text-emerald-200 pt-1">{resetMessage}</p>}
+
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            disabled={resetLoading}
+            className="text-xs text-white/90 underline underline-offset-2 hover:text-white"
+          >
+            {resetLoading ? 'Enviando link...' : 'Esqueci minha senha (admins)'}
+          </button>
 
           <Button
             type="submit"

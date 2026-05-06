@@ -84,15 +84,20 @@ export default function AssetFormDialog({ open, onOpenChange, asset, onSaved }) 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const data = { ...form, purchase_value: form.purchase_value ? Number(form.purchase_value) : undefined };
-    if (asset) {
-      await base44.entities.Asset.update(asset.id, data);
-    } else {
-      await base44.entities.Asset.create(data);
+    try {
+      const data = { ...form, purchase_value: form.purchase_value ? Number(form.purchase_value) : undefined };
+      if (asset) {
+        await base44.entities.Asset.update(asset.id, data);
+      } else {
+        await base44.entities.Asset.create(data);
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (error) {
+      window.alert(error?.message || 'Falha ao salvar ativo.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));

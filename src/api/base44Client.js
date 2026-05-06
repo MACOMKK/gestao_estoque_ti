@@ -10,6 +10,7 @@ const assertSupabaseConfigured = () => {
 };
 
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+let roleCache = { value: null, expiresAt: 0, email: null };
 
 const ENTITY_CONFIG = {
   Unit: {
@@ -42,6 +43,27 @@ const ENTITY_CONFIG = {
       status: 'status',
       termo_assinado: 'termo_assinado',
       termo_assinado_em: 'termo_assinado_em',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
+  },
+  EmployeeAccess: {
+    table: 'colaboradores_com_acesso',
+    fieldMap: {
+      id: 'id',
+      full_name: 'nome_completo',
+      cpf: 'cpf',
+      email: 'email',
+      phone: 'telefone',
+      department: 'departamento',
+      role: 'cargo',
+      unit_id: 'unidade_id',
+      unit_name: 'unidade_nome',
+      admission_date: 'data_admissao',
+      status: 'status',
+      termo_assinado: 'termo_assinado',
+      termo_assinado_em: 'termo_assinado_em',
+      perfil_acesso: 'perfil_acesso',
       created_date: 'criado_em',
       updated_date: 'atualizado_em'
     }
@@ -124,6 +146,32 @@ const ENTITY_CONFIG = {
       created_date: 'criado_em',
       updated_date: 'atualizado_em'
     }
+  },
+  EmailQueue: {
+    table: 'email_queue',
+    fieldMap: {
+      id: 'id',
+      tipo: 'tipo',
+      payload: 'payload',
+      status: 'status',
+      tentativas: 'tentativas',
+      max_tentativas: 'max_tentativas',
+      erro: 'erro',
+      scheduled_at: 'scheduled_at',
+      processed_at: 'processed_at',
+      created_date: 'created_at',
+      updated_date: 'updated_at'
+    }
+  },
+  Profile: {
+    table: 'perfis',
+    fieldMap: {
+      id: 'id',
+      perfil: 'perfil',
+      colaborador_id: 'colaborador_id',
+      created_date: 'criado_em',
+      updated_date: 'atualizado_em'
+    }
   }
 };
 
@@ -134,17 +182,25 @@ const invertMap = (obj) =>
   }, {});
 
 const mapToDb = (payload, fieldMap) => {
-  const nullableDateColumns = new Set([
+  const nullableColumns = new Set([
     'data_admissao',
     'termo_assinado_em',
     'data_compra',
-    'data_atribuicao'
+    'data_atribuicao',
+    'unidade_id',
+    'atribuido_para_id',
+    'numero_serie',
+    'patrimonio',
+    'cpf',
+    'email',
+    'contato_email',
+    'contato_telefone'
   ]);
 
   const out = {};
   Object.entries(payload || {}).forEach(([key, value]) => {
     const dbKey = fieldMap[key] || key;
-    if (value === '' && nullableDateColumns.has(dbKey)) {
+    if (value === '' && nullableColumns.has(dbKey)) {
       out[dbKey] = null;
     } else {
       out[dbKey] = value;
@@ -190,6 +246,40 @@ const run = async (promise) => {
   return data;
 };
 
+const getCurrentRole = async () => {
+  assertSupabaseConfigured();
+  const now = Date.now();
+  if (roleCache.value && roleCache.expiresAt > now) {
+    return roleCache.value;
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData?.user?.id) {
+    return 'user';
+  }
+  const authUser = authData.user;
+
+  const { data: perfilById } = await run(
+    supabase.from('perfis').select('perfil').eq('id', authUser.id).maybeSingle()
+  );
+
+  const role = perfilById?.perfil || 'user';
+  roleCache = { value: role, expiresAt: now + 5_000, email: authUser.email || null };
+  return role;
+};
+
+const ensureCanMutate = async () => {
+  const currentUser = await base44.auth.me();
+  const email = currentUser?.email || 'desconhecido';
+  const uid = currentUser?.id || 'sem_uid';
+  const role = currentUser?.role || 'user';
+  if (role !== 'admin') {
+    const err = new Error(`Sem permissao: perfil detectado como "${role}" para ${email} (uid=${uid}).`);
+    err.status = 403;
+    throw err;
+  }
+};
+
 const createEntityApi = (entityName) => {
   const cfg = ENTITY_CONFIG[entityName];
   const reverseFieldMap = invertMap(cfg.fieldMap);
@@ -217,6 +307,7 @@ const createEntityApi = (entityName) => {
     },
 
     async create(payload) {
+      await ensureCanMutate();
       assertSupabaseConfigured();
       const row = await run(
         supabase.from(cfg.table).insert(mapToDb(payload, cfg.fieldMap)).select('*').single()
@@ -225,6 +316,7 @@ const createEntityApi = (entityName) => {
     },
 
     async update(id, payload) {
+      await ensureCanMutate();
       assertSupabaseConfigured();
       const row = await run(
         supabase.from(cfg.table).update(mapToDb(payload, cfg.fieldMap)).eq('id', id).select('*').single()
@@ -233,6 +325,7 @@ const createEntityApi = (entityName) => {
     },
 
     async delete(id) {
+      await ensureCanMutate();
       assertSupabaseConfigured();
       await run(supabase.from(cfg.table).delete().eq('id', id));
       return { success: true };
@@ -241,6 +334,7 @@ const createEntityApi = (entityName) => {
 };
 
 const uploadFile = async (file) => {
+  await ensureCanMutate();
   assertSupabaseConfigured();
   const ext = file.name?.includes('.') ? file.name.split('.').pop() : 'bin';
   const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -264,28 +358,49 @@ export const base44 = {
         err.status = 401;
         throw err;
       }
+      const { data: perfilData } = await supabase
+        .from('perfis')
+        .select('perfil')
+        .eq('id', user.id)
+        .maybeSingle();
+
       return {
         id: user.id,
         email: user.email,
         full_name: user.user_metadata?.full_name || 'Usuario',
-        role: 'admin'
+        role: perfilData?.perfil || 'user'
       };
     },
     async login(email, password) {
       assertSupabaseConfigured();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      roleCache = { value: null, expiresAt: 0, email: null };
       return true;
     },
     async logout() {
       assertSupabaseConfigured();
       await supabase.auth.signOut();
+      roleCache = { value: null, expiresAt: 0, email: null };
     },
     async getAccessToken() {
       assertSupabaseConfigured();
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
       return data?.session?.access_token || '';
+    },
+    async requestPasswordReset(email) {
+      assertSupabaseConfigured();
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw error;
+      return true;
+    },
+    async updatePassword(newPassword) {
+      assertSupabaseConfigured();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      return true;
     },
     redirectToLogin() {
       window.location.href = '/login';
@@ -299,6 +414,7 @@ export const base44 = {
     },
     Functions: {
       async invoke(name, body) {
+        await ensureCanMutate();
         assertSupabaseConfigured();
         const token = await base44.auth.getAccessToken();
         const resp = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
@@ -322,9 +438,12 @@ export const base44 = {
   entities: {
     Unit: createEntityApi('Unit'),
     Employee: createEntityApi('Employee'),
+    EmployeeAccess: createEntityApi('EmployeeAccess'),
     Asset: createEntityApi('Asset'),
     Info: createEntityApi('Info'),
     KnowledgeBase: createEntityApi('KnowledgeBase'),
-    TermoPosse: createEntityApi('TermoPosse')
+    TermoPosse: createEntityApi('TermoPosse'),
+    EmailQueue: createEntityApi('EmailQueue'),
+    Profile: createEntityApi('Profile')
   }
 };

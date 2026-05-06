@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import KnowledgeFormDialog from '@/components/knowledge/KnowledgeFormDialog';
+import { useAuth } from '@/lib/AuthContext';
 
 const categoryColors = {
   TI: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -21,6 +22,8 @@ const categoryColors = {
 };
 
 export default function KnowledgeBase() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -66,9 +69,11 @@ export default function KnowledgeBase() {
           <h1 className="text-3xl font-extrabold tracking-tight">Base de Conhecimento</h1>
           <p className="text-muted-foreground mt-1">{items.length} recurso{items.length !== 1 ? 's' : ''} cadastrado{items.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => { setEditingItem(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="w-4 h-4" /> Novo Recurso
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => { setEditingItem(null); setFormOpen(true); }} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo Recurso
+          </Button>
+        )}
       </div>
 
       <Card className="p-4">
@@ -153,14 +158,16 @@ export default function KnowledgeBase() {
                     ) : <span className="text-muted-foreground text-xs">—</span>}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingItem(item); setFormOpen(true); }}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteItem(item)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingItem(item); setFormOpen(true); }}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteItem(item)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -169,9 +176,9 @@ export default function KnowledgeBase() {
         </Card>
       )}
 
-      <KnowledgeFormDialog open={formOpen} onOpenChange={setFormOpen} item={editingItem} onSaved={refresh} />
+      {isAdmin && <KnowledgeFormDialog open={formOpen} onOpenChange={setFormOpen} item={editingItem} onSaved={refresh} />}
 
-      <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
+      <AlertDialog open={isAdmin && !!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Recurso</AlertDialogTitle>

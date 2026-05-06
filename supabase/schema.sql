@@ -156,8 +156,39 @@ create table if not exists public.termos_posse (
   atualizado_em timestamptz not null default now()
 );
 
+create table if not exists public.email_queue (
+  id uuid primary key default gen_random_uuid(),
+  tipo text not null,
+  payload jsonb not null,
+  status text not null default 'pending' check (status in ('pending', 'processing', 'sent', 'failed')),
+  tentativas integer not null default 0,
+  max_tentativas integer not null default 5,
+  erro text,
+  scheduled_at timestamptz not null default now(),
+  processed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.perfis
+add column if not exists colaborador_id uuid references public.colaboradores(id) on delete set null;
+
+create or replace view public.colaboradores_com_acesso as
+select
+  c.*,
+  coalesce(
+    max(case when p.perfil = 'admin' then 'admin' end),
+    max(case when p.perfil = 'user' then 'user' end),
+    'user'
+  ) as perfil_acesso
+from public.colaboradores c
+left join public.perfis p
+  on p.colaborador_id = c.id
+group by c.id;
+
 -- Helpful indexes
 create index if not exists idx_unidades_status on public.unidades(status);
+create unique index if not exists idx_perfis_colaborador_id_unique on public.perfis(colaborador_id) where colaborador_id is not null;
 create index if not exists idx_colaboradores_status on public.colaboradores(status);
 create index if not exists idx_colaboradores_unidade_id on public.colaboradores(unidade_id);
 create index if not exists idx_ativos_status on public.ativos(status);
@@ -169,6 +200,10 @@ create index if not exists idx_informacoes_atribuido_para_id on public.informaco
 create index if not exists idx_termos_posse_colaborador_id on public.termos_posse(colaborador_id);
 create index if not exists idx_termos_posse_status on public.termos_posse(status);
 create index if not exists idx_termos_posse_enviado_em on public.termos_posse(enviado_em);
+create index if not exists idx_email_queue_status_scheduled_at on public.email_queue(status, scheduled_at);
+create index if not exists idx_email_queue_created_at on public.email_queue(created_at);
+create index if not exists idx_email_queue_status_processed_at on public.email_queue(status, processed_at);
+create index if not exists idx_email_queue_status_updated_at on public.email_queue(status, updated_at);
 
 -- Keep atualizado_em fresh
 create or replace function public.set_atualizado_em()
@@ -177,6 +212,16 @@ language plpgsql
 as $$
 begin
   new.atualizado_em = now();
+  return new;
+end;
+$$;
+
+create or replace function public.set_email_queue_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
   return new;
 end;
 $$;
@@ -214,6 +259,10 @@ create trigger trg_termos_posse_atualizado_em
 before update on public.termos_posse
 for each row execute function public.set_atualizado_em();
 
+create trigger trg_email_queue_updated_at
+before update on public.email_queue
+for each row execute function public.set_email_queue_updated_at();
+
 -- RLS
 alter table public.perfis enable row level security;
 alter table public.unidades enable row level security;
@@ -222,6 +271,7 @@ alter table public.ativos enable row level security;
 alter table public.informacoes enable row level security;
 alter table public.base_conhecimento enable row level security;
 alter table public.termos_posse enable row level security;
+alter table public.email_queue enable row level security;
 
 -- Basic authenticated access policies (adjust later by role)
 create policy "perfis_select_proprio" on public.perfis
@@ -263,6 +313,11 @@ using (true)
 with check (true);
 
 create policy "termos_posse_crud_authenticated" on public.termos_posse
+for all to authenticated
+using (true)
+with check (true);
+
+create policy "email_queue_crud_authenticated" on public.email_queue
 for all to authenticated
 using (true)
 with check (true);
