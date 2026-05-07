@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -20,9 +21,13 @@ const emptyForm = {
   unit_id: '', unit_name: '',
 };
 
+const normalizeText = (value) => (value || '').trim().toLowerCase();
+const normalizeCpf = (value) => (value || '').replace(/\D/g, '');
+
 export default function EmployeeFormDialog({ open, onOpenChange, employee, onSaved }) {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [unlinkAssetsOnInactive, setUnlinkAssetsOnInactive] = useState(false);
 
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
@@ -44,8 +49,10 @@ export default function EmployeeFormDialog({ open, onOpenChange, employee, onSav
         unit_id: employee.unit_id || '',
         unit_name: employee.unit_name || '',
       });
+      setUnlinkAssetsOnInactive(false);
     } else {
       setForm(emptyForm);
+      setUnlinkAssetsOnInactive(false);
     }
   }, [employee, open]);
 
@@ -65,11 +72,49 @@ export default function EmployeeFormDialog({ open, onOpenChange, employee, onSav
     }
     setSaving(true);
     try {
+      const shouldUnlinkAssets = !!employee && unlinkAssetsOnInactive;
+
       if (employee) {
         await base44.entities.Employee.update(employee.id, form);
       } else {
         await base44.entities.Employee.create(form);
       }
+
+      if (shouldUnlinkAssets) {
+        const allAssets = await base44.entities.Asset.list();
+        const names = [employee?.full_name, form.full_name]
+          .map(normalizeText)
+          .filter(Boolean);
+        const emails = [employee?.email, form.email]
+          .map(normalizeText)
+          .filter(Boolean);
+        const cpfs = [employee?.cpf, form.cpf]
+          .map(normalizeCpf)
+          .filter(Boolean);
+
+        const linkedAssets = allAssets.filter((asset) => {
+          const matchName = names.includes(normalizeText(asset.assigned_to));
+          const matchEmail = emails.includes(normalizeText(asset.assigned_to_email));
+          const matchCpf = cpfs.includes(normalizeCpf(asset.assigned_to_cpf));
+          return matchName || matchEmail || matchCpf;
+        });
+
+        await Promise.all(
+          linkedAssets.map((asset) =>
+            base44.entities.Asset.update(asset.id, {
+              status: 'disponivel',
+              assigned_to: '',
+              assigned_to_email: '',
+              assigned_to_cpf: '',
+              assigned_to_department: '',
+              assignment_date: ''
+            })
+          )
+        );
+
+        window.alert(`${linkedAssets.length} ativo(s) desvinculado(s).`);
+      }
+
       onSaved();
       onOpenChange(false);
     } catch (error) {
@@ -139,6 +184,21 @@ export default function EmployeeFormDialog({ open, onOpenChange, employee, onSav
                 </SelectContent>
               </Select>
             </div>
+            {employee && (
+              <div className="md:col-span-2 rounded-md border p-3 space-y-2">
+                <p className="text-sm font-medium">Ações de vínculo</p>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="unlink-assets-on-inactive"
+                    checked={unlinkAssetsOnInactive}
+                    onCheckedChange={(checked) => setUnlinkAssetsOnInactive(checked === true)}
+                  />
+                  <Label htmlFor="unlink-assets-on-inactive" className="text-sm leading-5 cursor-pointer">
+                    Desvincular todos os ativos da posse deste colaborador ao salvar
+                  </Label>
+                </div>
+              </div>
+            )}
             <div className="md:col-span-2 space-y-1.5">
               <Label>Unidade / Filial</Label>
               <Select value={form.unit_id} onValueChange={handleUnitChange}>

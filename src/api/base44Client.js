@@ -219,7 +219,7 @@ const mapFromDb = (row, reverseFieldMap) => {
 };
 
 const parseSort = (sort) => {
-  if (!sort) return { column: 'criado_em', ascending: false };
+  if (!sort) return { field: 'criado_em', ascending: false };
   const desc = sort.startsWith('-');
   const field = desc ? sort.slice(1) : sort;
   return { field, ascending: !desc };
